@@ -40,7 +40,7 @@ public class NoteContentProvider extends ContentProvider {
 
 
 
-    // ========================== CONTENT PROVIDER ==================================
+    // ========================== DB : CONTENT PROVIDER ==================================
 
     // database helper
     private NoteDBHelper noteDBHelper;
@@ -54,8 +54,28 @@ public class NoteContentProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Cursor query(@NonNull Uri uri, @Nullable String[] strings, @Nullable String s, @Nullable String[] strings1, @Nullable String s1) {
-        return null;
+    public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection, @Nullable String[] selectionArgs, @Nullable String sortOrder) {
+       final SQLiteDatabase db = noteDBHelper.getReadableDatabase();
+
+       int match = sUriMatcher.match(uri);
+       Cursor retCursor;
+
+       switch (match)
+       {
+           case NOTES:
+               retCursor = db.query(NoteContract.NoteEntry.TABLE_NAME,
+                       projection,
+                       selection,
+                       selectionArgs,
+                       null,
+                       null,
+                       sortOrder);
+               break;
+           default:
+               throw new UnsupportedOperationException("Unknown URI "+uri);
+       }
+       retCursor.setNotificationUri(getContext().getContentResolver(),uri);
+       return  retCursor;
     }
 
     @Nullable
@@ -78,6 +98,7 @@ public class NoteContentProvider extends ContentProvider {
             case NOTES:
                 long id = db.insert(NoteContract.NoteEntry.TABLE_NAME,null,contentValues);
                 if(id>0){
+                    //content://np.com.manishtuladhar.notetaker/notes/4
                     returnUri = ContentUris.withAppendedId(NoteContract.NoteEntry.CONTENT_URI,id);
                 }
                 else{
@@ -94,7 +115,27 @@ public class NoteContentProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String s, @Nullable String[] strings) {
-        return 0;
+        //database access
+        final SQLiteDatabase db = noteDBHelper.getWritableDatabase();
+        //match ansuar hamile curosr ra data pathauchua
+        int match = sUriMatcher.match(uri);
+        //uri return garne
+        int noteDeleted;
+        switch (match)
+        {
+            case NOTE_WITH_ID:
+                String id = uri.getPathSegments().get(1);
+                noteDeleted = db.delete(NoteContract.NoteEntry.TABLE_NAME,"_id=?",new String[]{id});
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: "+uri);
+        }
+        //notifying content resolver about new data insertion
+        if(noteDeleted!=0)
+        {
+            getContext().getContentResolver().notifyChange(uri,null);
+        }
+        return noteDeleted;
     }
 
     @Override

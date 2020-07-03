@@ -20,11 +20,9 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     private Context mContext;
     private Cursor mCursor;
 
-
-    public NoteAdapter(Context context, Cursor cursor)
+    public NoteAdapter(Context context)
     {
         this.mContext = context;
-        this.mCursor = cursor;
     }
 
     @NonNull

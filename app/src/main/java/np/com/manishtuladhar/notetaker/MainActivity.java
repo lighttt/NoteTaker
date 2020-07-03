@@ -12,10 +12,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import np.com.manishtuladhar.notetaker.data.NoteContract;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -36,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         //rv
         mRecyclerView = findViewById(R.id.recyclerViewTasks);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mAdapter = new NoteAdapter(this,null);
+        mAdapter = new NoteAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
 
         //swipe function
@@ -48,7 +52,18 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int id = (int) viewHolder.itemView.getTag();
 
+                //uri to delete
+                String stringID = Integer.toString(id);
+                Uri uri = NoteContract.NoteEntry.CONTENT_URI;
+                uri = uri.buildUpon().appendPath(stringID).build();
+
+                //delete operation content provider
+                getContentResolver().delete(uri,null,null);
+
+                //restart and get new data
+                getSupportLoaderManager().restartLoader(NOTE_LOADER_ID,null,MainActivity.this);
             }
         }).attachToRecyclerView(mRecyclerView);
 
@@ -68,8 +83,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     // =========================== ACTIVITY LIFECYCLE ======================
 
     @Override
-    protected void onRestart() {
-        super.onRestart();
+    protected void onResume() {
+        super.onResume();
         //restart or re accessed new data
         getSupportLoaderManager().restartLoader(NOTE_LOADER_ID,null,this);
     }
@@ -99,7 +114,19 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Nullable
             @Override
             public Cursor loadInBackground() {
-                return null;
+                try{
+                    return getContentResolver().query(NoteContract.NoteEntry.CONTENT_URI,
+                            null,
+                            null,
+                            null,
+                            NoteContract.NoteEntry.COLUMN_PRIORITY);
+                }
+                catch (Exception e)
+                {
+                    Log.e(TAG, "loadInBackground: failed to load data" );
+                    return null;
+                }
+
             }
 
             @Override
@@ -119,6 +146,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     public void onLoaderReset(@NonNull Loader<Cursor> loader) {
-
+        mAdapter.swapCursor(null);
     }
 }
